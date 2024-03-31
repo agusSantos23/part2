@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import personsService from './services/persons'
 
-
-
-const Filter = ({fun}) => {
+const Filter = ({searchedChange}) => {
 
   return(
     <>
       <form>
-        filter shown with <input onChange={fun} />
+        filter shown with <input onChange={searchedChange} />
       </form>
     </>
   )
@@ -32,12 +30,12 @@ const NewPerson = ({addName, nameChange, numberChange, newName, newNumber}) => {
   )
 }
 
-const Phonebook = ({searchedResults}) =>{
+const Phonebook = ({searchedResults, deleat}) =>{
 
   return(
     <>
       {searchedResults.map( person =>   
-        <p key={person.id}>{person.name + " " + person.number } </p>  
+        <p key={person.id}>{person.name + " " + person.number } <button onClick={() => {deleat(person)}}>Delete</button> </p>  
       )}
     </>
   )
@@ -48,60 +46,101 @@ const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState(0)
-  const [searchedPerson, setSearchedPerson] = useState("")
   const [searchedResults, setSearchedResults] = useState([])
-
+  
+  
   useEffect(() =>{
-    axios
-      .get('http://localhost:3001/persons')
+    personsService
+      .getAll()
       .then(response => {
         setPersons(response.data)
+        setSearchedResults(response.data)
       })
-  })
-
+  },[])
 
   const addName = (event) => {
     event.preventDefault()
     
-    const personObject = {
-      name: newName,
-      number: newNumber,
-      id: persons.length+1
-    }
+    if(persons.some(person => person.name === newName)){
+      
+      updatePerson()
+      setNewName("")
+      setNewNumber("")
 
-    setPersons(persons.concat(personObject))
-    setNewName("")
-    setNewNumber("")
+    }else{
+      const id = persons.length+1
+      const personObject = {
+        name: newName,
+        number: newNumber,
+        id: id.toString()
+      }
+  
+      personsService
+        .create(personObject)
+        .then(response =>{
+          setPersons(persons.concat(response.data))
+          setNewName("")
+          setNewNumber("")
+        })
+    }
   }
 
   const nameChange = (event) => {
     
-    if(persons.some(person => person.name === event.target.value)){
-      alert(`${event.target.value} is already added to phonebook` )
-    }
-
     setNewName(event.target.value)
   }
 
   const numberChange = (event) =>{
+
     setNewNumber(event.target.value)
   }
 
-  const searchedChange = (event) =>{
-    setSearchedPerson(event.target.value)
+  const updatePerson = () =>{
 
-    setSearchedResults(persons.filter(person => 
+    if(window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
+      const thePerson = persons.find(person => person.name === newName)
+      const newObject = {...thePerson, number:newNumber}
 
-        person.name.toLowerCase().includes(searchedPerson.toLowerCase())
+      personsService.update(thePerson.id,newObject)
 
-      ))
+    }
 
   }
+
+  const searchedChange = (event) =>{
+    
+    const searchText = event.target.value.toLowerCase();
+    
+
+    if (searchText === "") {
+      setSearchedResults(persons);
+    } else {
+      setSearchedResults(persons.filter(person =>
+        person.name.toLowerCase().includes(searchText)
+      ));
+    }
+  
+  }
+
+  const deleat = person =>{
+    if(window.confirm(`Delete ${person.name} ?`)){
+
+      personsService.deleat(person.id)
+
+      personsService
+        .getAll()
+        .then(response => {
+          setPersons(response.data)
+          setSearchedResults(response.data)
+        })
+    }
+  }
+
   return (
     <div>
       <h1>Phonebook</h1>
 
-      <Filter fun = {searchedChange}/>
+      <Filter searchedChange = {searchedChange}/>
         
       <h2>add a new</h2>
       
@@ -114,7 +153,7 @@ const App = () => {
       />
       <h2>Numbers</h2>
 
-      <Phonebook searchedResults={searchedResults}/>
+      <Phonebook searchedResults={searchedResults} deleat = {deleat}/>
       
     </div>
   )
