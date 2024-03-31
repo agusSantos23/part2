@@ -1,0 +1,14 @@
+.notif{
+    
+    background-color: lightgrey;
+    font-size: 25px;
+    padding: 10px;
+    border-radius: 15px;
+}
+
+.t{
+    color: green;
+}
+.f{
+    color: red;
+}

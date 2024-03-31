@@ -1,14 +1,37 @@
 import { useEffect, useState } from 'react'
 import personsService from './services/persons'
 
-const Filter = ({searchedChange}) => {
+
+const Notif = ({notification,valor}) => {
+  let css = "notif"
+
+  if(valor){
+    css += " t"
+  }else{
+    css += " f"
+  }
+
+  if(notification === null){
+    return null
+  }
 
   return(
     <>
+      <span className={css}>{notification}</span>
+    </>
+  )
+
+}
+
+
+const Filter = ({searchedChange}) => {
+
+  return(
+    <h4>
       <form>
         filter shown with <input onChange={searchedChange} />
       </form>
-    </>
+    </h4>
   )
 }
 
@@ -47,8 +70,10 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState(0)
   const [searchedResults, setSearchedResults] = useState([])
+  const [notification, setNotification] = useState(null)
+  const [valor,setValor] = useState()
   
-  
+
   useEffect(() =>{
     personsService
       .getAll()
@@ -64,9 +89,7 @@ const App = () => {
     if(persons.some(person => person.name === newName)){
       
       updatePerson()
-      setNewName("")
-      setNewNumber("")
-
+      
     }else{
       const id = persons.length+1
       const personObject = {
@@ -82,6 +105,12 @@ const App = () => {
           setNewName("")
           setNewNumber("")
         })
+
+      setNotification(`Added ${newName}`)
+      setValor(true)
+      setTimeout(() =>{
+        setNotification(null)
+      }, 5000)
     }
   }
 
@@ -101,11 +130,26 @@ const App = () => {
       const thePerson = persons.find(person => person.name === newName)
       const newObject = {...thePerson, number:newNumber}
 
-      personsService.update(thePerson.id,newObject)
+      personsService
+      .update(thePerson.id,newObject)
+      .catch(error =>{
 
+        setNotification("An error occurred while performing the operation")
+        setValor(false)
+      })
+
+
+      setNotification(`${thePerson.name}'s number has been modified to ${newNumber}`)
+      setValor(true)
+      setTimeout(() =>{
+        setNotification(null)
+      }, 30000)
+
+      setNewName("")
+      setNewNumber("")
     }
-
   }
+  
 
   const searchedChange = (event) =>{
     
@@ -136,9 +180,11 @@ const App = () => {
     }
   }
 
+  
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notif notification={notification} valor={valor}/>
 
       <Filter searchedChange = {searchedChange}/>
         
